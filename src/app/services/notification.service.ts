@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { LocalNotifications, PermissionStatus, LocalNotificationSchema, ScheduleResult } from '@capacitor/local-notifications';
 import { ToastController } from '@ionic/angular';
 import { getDefaultTimezone } from 'src/utils/timezone-util';
+import { Toast } from '@capacitor/toast';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -28,8 +30,6 @@ export class NotificationService {
   // Create a notification
   async scheduleNotification(notification: LocalNotificationSchema) {
     this.defaultTimeZone = getDefaultTimezone();
-
-
 
     await LocalNotifications.schedule({
       notifications: [notification],
@@ -58,40 +58,30 @@ export class NotificationService {
   }
 
 
-    // Listen for incoming notifications
-    listenForIncomingNotifications() {
-      LocalNotifications.addListener('localNotificationReceived', (notification) => {
-        console.log('Notification received:', notification);
-        this.displayInAppNotification(notification);
-      });
-    }
+  // // Listen for incoming notifications
+  // listenForIncomingNotifications() {
+  //   LocalNotifications.addListener('localNotificationReceived', (notification) => {
+  //     console.log('Notification received:', notification);
+  //     this.displayInAppNotification(notification);
+  //   });
+  // }
 
-    // Display in-app notification (e.g., toast or custom overlay)
-    // private displayInAppNotification(notification: any) {
-    //   const toast = document.createElement('div');
-    //   toast.className = 'custom-notification';
-    //   toast.innerHTML = `
-    //     <div class="notification-content">
-    //       <strong>${notification.title}</strong>
-    //       <p>${notification.body}</p>
-    //     </div>
-    //   `;
-    //   document.body.appendChild(toast);
+  async presentToast(message: string, duration: 'short' | 'long' = 'short', position: 'top' | 'center' | 'bottom' = 'bottom') {
+    await Toast.show({
+      text: message,
+      duration: duration,
+      position: position,
+    });
+  }
 
-      // Remove the notification after 5 seconds
-    //   setTimeout(() => {
-    //     toast.remove();
-    //   }, 5000);
-    // }
-
-    async displayInAppNotification(notification: any) {
-      const toast = await this.toastController.create({
-        header: notification.title,
-        message: notification.body,
-        position: 'top',
-        duration: 5000,
-        color: 'dark',
-      });
-      await toast.present();
-    }
+  // async displayInAppNotification(notification: any) {
+  //   const toast = await this.toastController.create({
+  //     header: notification.title,
+  //     message: notification.body,
+  //     position: 'top',
+  //     duration: 5000,
+  //     color: 'dark',
+  //   });
+  //   await toast.present();
+  // }
 }

@@ -3,15 +3,13 @@
     <ion-title>
       Pomodoro App
     </ion-title>
+    <ion-toggle slot="end" style="padding-right: 10px;">
+      Dark Mode
+    </ion-toggle>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding">
-  <ion-button expand="block">Press to Start Pomodoro</ion-button>
-  <ion-button expand="block" id="click-trigger">Click to Check on Your Pomodoro Cycle</ion-button>
-  <ion-popover trigger="click-trigger" triggerAction="click">
-    <ng-template>
-      <ion-content class="ion-padding">Hello World!</ion-content>
-    </ng-template>
-  </ion-popover>
+  <ion-button expand="block" (click)="createPomodoro()">Press to Start Pomodoro</ion-button>
+  <ion-button expand="block" (click)="viewPendingPomodoro()">Check Timer (When Display Notif)</ion-button>
 </ion-content>
