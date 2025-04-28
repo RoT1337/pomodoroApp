@@ -10,6 +10,24 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding">
-  <ion-button expand="block" (click)="createPomodoro()">Press to Start Pomodoro</ion-button>
-  <ion-button expand="block" (click)="viewPendingPomodoro()">Check Timer (When Display Notif)</ion-button>
+  <h2 class="ion-text-center">Current Local Time: {{ currentTime }}</h2>
+  <ion-button expand="block" (click)="clearNotifications()" color="danger">Clear All Notifications</ion-button>
+  <ion-button expand="block" (click)="viewPendingPomodoro()">Check Pending Pomodoro/Notifs</ion-button>
+  <ion-button expand="block" id="open-modal" (click)="createPomodoro()" color="warning">Press to Start Pomodoro</ion-button>
+  <!-- On click, pomodoro starts with timer displayed on a modal-->
+  <ion-modal trigger="open-modal" (ionModalDidPresent)="startCountdown()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar style="padding-top: 25px;">
+          <ion-buttons slot="start">
+            <ion-button (click)="cancel()" [disabled]="notificationActive">Return</ion-button>
+          </ion-buttons>
+          <ion-title>Timer</ion-title>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <h2 class="ion-text-center" style="margin-top: 50px;">{{ displayCountdown }}</h2>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 </ion-content>

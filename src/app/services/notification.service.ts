@@ -44,27 +44,20 @@ export class NotificationService {
     return pending;
   }
 
-  // Update a notification
-  async updateNotification(id: number, updatedNotification: LocalNotificationSchema) {
-    await LocalNotifications.cancel({ notifications: [{ id }] });
-    await this.scheduleNotification(updatedNotification);
-    console.log(`Notification with ID ${id} updated.`);
+  // Listen for incoming notifications
+  async listenForNotificationEvents() {
+    LocalNotifications.addListener('localNotificationReceived', (notification) => {
+      console.log('Notification received:', notification);
+      // Schedule the next notif
+      const nextNotification = {
+        title: 'Break Finished',
+        body: 'Start another Pomodoro or Finish up!',
+        id: notification.id + 1, // Increment the ID
+        schedule: { at: new Date(new Date().getTime() + 60 * 1000) }, // 1 minute later
+      };
+      this.scheduleNotification(nextNotification);
+    });
   }
-
-  // Delete a notification
-  async cancelNotification(id: number) {
-    await LocalNotifications.cancel({ notifications: [{ id }] });
-    console.log(`Notification with ID ${id} canceled.`);
-  }
-
-
-  // // Listen for incoming notifications
-  // listenForIncomingNotifications() {
-  //   LocalNotifications.addListener('localNotificationReceived', (notification) => {
-  //     console.log('Notification received:', notification);
-  //     this.displayInAppNotification(notification);
-  //   });
-  // }
 
   async presentToast(message: string, duration: 'short' | 'long' = 'short', position: 'top' | 'center' | 'bottom' = 'bottom') {
     await Toast.show({
@@ -84,4 +77,9 @@ export class NotificationService {
   //   });
   //   await toast.present();
   // }
+
+  // Clears notifs (for debug only)
+  async clearAllNotifications() {
+    await LocalNotifications.cancel({ notifications: [] });
+  }
 }

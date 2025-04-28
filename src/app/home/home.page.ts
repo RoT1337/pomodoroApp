@@ -1,9 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { IonRouterOutlet, Platform } from '@ionic/angular';
 import { App } from '@capacitor/app';
 import { NotificationService } from '../services/notification.service';
 import { getDefaultTimezone, formatDateInTimezone } from 'src/utils/timezone-util';
-import { AlertController } from '@ionic/angular';
+import { IonModal } from '@ionic/angular';
 
 @Component({
   selector: 'app-home',
@@ -12,12 +12,55 @@ import { AlertController } from '@ionic/angular';
   standalone: false,
 })
 export class HomePage implements OnInit{
+  @ViewChild(IonModal) modal!: IonModal;
   currentTime: string = '';
+  scheduledNotifTime: any = new Date(new Date().getTime() + 60 * 700); 
+  displayCountdown: any;
+  notificationActive: boolean = false;
 
-  constructor(private notificationServ: NotificationService, private alertController: AlertController) {}
+  constructor(
+    private notificationServ: NotificationService, 
+    private platform: Platform,
+    private routerOutlet: IonRouterOutlet
+  ) {
+    this.platform.backButton.subscribeWithPriority(-1, () => {
+      if (!this.routerOutlet.canGoBack()) {
+        App.exitApp();
+        // App.minimizeApp();
+      }
+    });
+
+    this.notificationServ.listenForNotificationEvents();
+  }
 
   ngOnInit(): void {
-    setInterval(() => { this.updateCurrentTime() }, 1000);
+    setInterval(() => { 
+      this.updateCurrentTime() 
+    }, 1000);
+  }
+
+  startCountdown() {
+    const countdownInterval = setInterval(() => {
+      const now = new Date();
+      const timeDifference = this.scheduledNotifTime.getTime() - now.getTime();
+
+      if (timeDifference <= 0) {
+        clearInterval(countdownInterval);
+        this.displayCountdown = '00:00:00';
+        return;
+      }
+
+      // Convert timeDifference to hours, minutes, and seconds
+      const hours = Math.floor((timeDifference / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((timeDifference / (1000 * 60)) % 60);
+      const seconds = Math.floor((timeDifference / 1000) % 60);
+
+      this.displayCountdown = `${this.padNumber(hours)}:${this.padNumber(minutes)}:${this.padNumber(seconds)}`;
+    }, 1000);
+  }
+
+  padNumber(num: number): string {
+    return num < 10 ? `0${num}` : `${num}`;
   }
 
   updateCurrentTime() {
@@ -44,32 +87,21 @@ export class HomePage implements OnInit{
 
     const pendingPomodoro = await this.viewPendingPomodoroLength();
     if (pendingPomodoro.valueOf() > 0) {
-      const alert = await this.alertController.create({
-        header: 'Pomodoro is Underway',
-        message: '(Timer here if possible)',
-      });
-  
-      await alert.present();
+      alert('Pomodoro already underway');
+    } else {
+      this.notificationActive = true;
+      const notification: any = {
+        title: 'Reminder',
+        body: 'Time for a Break! (5 Minutes)',
+        id: 1,
+        schedule: { at: this.scheduledNotifTime }
+      };
+      await this.notificationServ.scheduleNotification(notification);
+
+      this.scheduledNotifTime = new Date(new Date().getTime() + 60 * 700); 
+
+      this.startCountdown();
     }
-
-    // const toastMessage: any = {
-    //   text: 'Pomodoro Start!',
-    //   duration: 'short',
-    //   position: 'bottom'
-    // };
-    // await this.notificationServ.presentToast(toastMessage);
-
-    const notification: any = {
-      title: 'Reminder',
-      body: 'Time for a Break! (5 Minutes)',
-      id: 1,
-      schedule: { at: new Date(new Date().getTime() + 60 * 500) }, // 1 minute from now
-      sound: null,
-      attachments: null,
-      actionTypeId: '',
-      extra: null,
-    };
-    await this.notificationServ.scheduleNotification(notification);
   }
 
   async viewPendingPomodoroLength(): Promise<Number> {
@@ -81,4 +113,16 @@ export class HomePage implements OnInit{
     const pending = await this.notificationServ.getPendingNotifications();
     alert(JSON.stringify(pending));
   }
+
+  async clearNotifications() {
+    await this.notificationServ.clearAllNotifications();
+    this.notificationActive = false;
+    alert('All notifications cleared');
+  }
+
+  // Ion Modal Stuff
+  cancel() {
+    this.modal.dismiss(null, 'cancel');
+  }
+  
 }
