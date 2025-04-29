@@ -3,15 +3,15 @@
     <ion-title>
       Pomodoro App
     </ion-title>
-    <ion-toggle slot="end" style="padding-right: 10px;">
+    <!-- <ion-toggle slot="end" style="padding-right: 10px;">
       Dark Mode
-    </ion-toggle>
+    </ion-toggle> -->
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding">
   <h2 class="ion-text-center">Current Local Time: {{ currentTime }}</h2>
-  <ion-button expand="block" (click)="clearNotifications()" color="danger">Clear All Notifications</ion-button>
+  <!-- <ion-button expand="block" (click)="clearNotifications()" color="danger">Clear All Notifications</ion-button> -->
   <ion-button expand="block" (click)="viewPendingPomodoro()">Check Pending Pomodoro/Notifs</ion-button>
   <ion-button expand="block" id="open-modal" (click)="createPomodoro()" color="warning">Press to Start Pomodoro</ion-button>
   <!-- On click, pomodoro starts with timer displayed on a modal-->
@@ -20,7 +20,7 @@
       <ion-header>
         <ion-toolbar style="padding-top: 25px;">
           <ion-buttons slot="start">
-            <ion-button (click)="cancel()" [disabled]="notificationActive">Return</ion-button>
+            <ion-button (click)="cancel()">Return</ion-button>
           </ion-buttons>
           <ion-title>Timer</ion-title>
         </ion-toolbar>

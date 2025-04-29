@@ -14,9 +14,9 @@ import { IonModal } from '@ionic/angular';
 export class HomePage implements OnInit{
   @ViewChild(IonModal) modal!: IonModal;
   currentTime: string = '';
-  scheduledNotifTime: any = new Date(new Date().getTime() + 60 * 700); 
+  scheduledNotifTime: any = new Date(new Date().getTime() + 25 * 60 * 700); 
   displayCountdown: any;
-  notificationActive: boolean = false;
+  notificationActive: { active: boolean; pomodoroActive?: boolean } = { active: false };
 
   constructor(
     private notificationServ: NotificationService, 
@@ -77,6 +77,7 @@ export class HomePage implements OnInit{
     const permissions = await this.notificationServ.requestNotificationPermissions();
   }
 
+  // Start a pomodoro cycle
   async createPomodoro() {
     const permissions = await this.notificationServ.checkNotificationPermissions();
 
@@ -89,16 +90,22 @@ export class HomePage implements OnInit{
     if (pendingPomodoro.valueOf() > 0) {
       alert('Pomodoro already underway');
     } else {
-      this.notificationActive = true;
+      this.notificationActive = { active: true, pomodoroActive: true };
+      this.notificationServ.pomodoroActive = true;
+
+      const defaultTimezone = getDefaultTimezone();
+      const formattedTime = formatDateInTimezone(this.scheduledNotifTime, defaultTimezone);
+
       const notification: any = {
         title: 'Reminder',
         body: 'Time for a Break! (5 Minutes)',
         id: 1,
-        schedule: { at: this.scheduledNotifTime }
+        schedule: { at: this.scheduledNotifTime },
+        vibrate: [500, 200, 500]
       };
       await this.notificationServ.scheduleNotification(notification);
 
-      this.scheduledNotifTime = new Date(new Date().getTime() + 60 * 700); 
+      this.scheduledNotifTime = new Date(new Date().getTime() + 25 * 60 * 1000); 
 
       this.startCountdown();
     }
@@ -109,14 +116,16 @@ export class HomePage implements OnInit{
     return pending.notifications.length;
   }
 
+  // Debug
   async viewPendingPomodoro() {
     const pending = await this.notificationServ.getPendingNotifications();
     alert(JSON.stringify(pending));
   }
 
+  // Debug
   async clearNotifications() {
     await this.notificationServ.clearAllNotifications();
-    this.notificationActive = false;
+    this.notificationActive = { active: false, pomodoroActive: false };
     alert('All notifications cleared');
   }
 
