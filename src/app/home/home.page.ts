@@ -4,6 +4,7 @@ import { App } from '@capacitor/app';
 import { NotificationService } from '../services/notification.service';
 import { getDefaultTimezone, formatDateInTimezone } from 'src/utils/timezone-util';
 import { IonModal } from '@ionic/angular';
+import { ToastController } from '@ionic/angular';
 
 @Component({
   selector: 'app-home',
@@ -14,14 +15,15 @@ import { IonModal } from '@ionic/angular';
 export class HomePage implements OnInit{
   @ViewChild(IonModal) modal!: IonModal;
   currentTime: string = '';
-  scheduledNotifTime: any = new Date(new Date().getTime() + 25 * 60 * 700); 
+  scheduledNotifTime: any = new Date(new Date().getTime() + 25 * 60 * 700); //Initially set the time to 25 minutes
   displayCountdown: any;
-  notificationActive: { active: boolean; pomodoroActive?: boolean } = { active: false };
+  notificationActive: boolean = false;
 
   constructor(
     private notificationServ: NotificationService, 
     private platform: Platform,
-    private routerOutlet: IonRouterOutlet
+    private routerOutlet: IonRouterOutlet,
+    private toastController: ToastController
   ) {
     this.platform.backButton.subscribeWithPriority(-1, () => {
       if (!this.routerOutlet.canGoBack()) {
@@ -29,8 +31,6 @@ export class HomePage implements OnInit{
         // App.minimizeApp();
       }
     });
-
-    this.notificationServ.listenForNotificationEvents();
   }
 
   ngOnInit(): void {
@@ -80,34 +80,54 @@ export class HomePage implements OnInit{
   // Start a pomodoro cycle
   async createPomodoro() {
     const permissions = await this.notificationServ.checkNotificationPermissions();
-
+  
     if (permissions.display !== 'granted') {
-      alert('Notification permissions not granted. Requesting permissions...');
+      const toast = await this.toastController.create({
+        message: 'Notification permissions not granted. Requesting permissions...',
+        duration: 3000, // Toast duration in milliseconds
+        position: 'bottom', // Position of the toast
+        color: 'warning', // Optional: Set a color for the toast
+      });
+      await toast.present();
       await this.requestPermissions();
     }
-
+  
     const pendingPomodoro = await this.viewPendingPomodoroLength();
     if (pendingPomodoro.valueOf() > 0) {
-      alert('Pomodoro already underway');
+      const toast = await this.toastController.create({
+        message: 'A Pomodoro is already underway!',
+        duration: 3000,
+        position: 'bottom',
+        color: 'danger',
+      });
+      await toast.present();
     } else {
-      this.notificationActive = { active: true, pomodoroActive: true };
-      this.notificationServ.pomodoroActive = true;
-
-      const defaultTimezone = getDefaultTimezone();
-      const formattedTime = formatDateInTimezone(this.scheduledNotifTime, defaultTimezone);
-
-      const notification: any = {
+      this.notificationActive = true;
+  
+      const pomodoroNotification: any = {
         title: 'Reminder',
         body: 'Time for a Break! (5 Minutes)',
         id: 1,
         schedule: { at: this.scheduledNotifTime },
-        vibrate: [500, 200, 500]
       };
-      await this.notificationServ.scheduleNotification(notification);
-
-      this.scheduledNotifTime = new Date(new Date().getTime() + 25 * 60 * 1000); 
-
+  
+      const breakNotification: any = {
+        title: 'Break Finished',
+        body: 'Start another Pomodoro or Finish up!',
+        id: 2,
+        schedule: { at: new Date(this.scheduledNotifTime.getTime() + 5 * 60 * 1000) }, // 5 minutes after the first notification
+      };
+  
+      await this.notificationServ.scheduleNotificationWithFollowUp(pomodoroNotification, breakNotification);
+  
+      // Start the Pomodoro countdown
       this.startCountdown();
+  
+      // Update the scheduledNotifTime for the break and restart the countdown after the Pomodoro ends
+      setTimeout(() => {
+        this.scheduledNotifTime = new Date(new Date().getTime() + 5 * 60 * 1000); // 5-minute break
+        this.startCountdown();
+      }, 25 * 60 * 1000); // Wait for 25 minutes (Pomodoro duration)
     }
   }
 
@@ -125,7 +145,7 @@ export class HomePage implements OnInit{
   // Debug
   async clearNotifications() {
     await this.notificationServ.clearAllNotifications();
-    this.notificationActive = { active: false, pomodoroActive: false };
+    this.notificationActive = false
     alert('All notifications cleared');
   }
 
