@@ -15,7 +15,7 @@ import { ToastController } from '@ionic/angular';
 export class HomePage implements OnInit{
   @ViewChild(IonModal) modal!: IonModal;
   currentTime: string = '';
-  scheduledNotifTime: any = new Date(new Date().getTime() + 25 * 60 * 700); //Initially set the time to 25 minutes
+  scheduledNotifTime: any = new Date(new Date().getTime() + 1 * 60 * 700); 
   displayCountdown: any;
   notificationActive: boolean = false;
 
