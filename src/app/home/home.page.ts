@@ -15,7 +15,7 @@ import { ToastController } from '@ionic/angular';
 export class HomePage implements OnInit{
   @ViewChild(IonModal) modal!: IonModal;
   currentTime: string = '';
-  scheduledNotifTime: any = new Date(new Date().getTime() + 1 * 60 * 700); 
+  scheduledNotifTime: any = new Date(new Date().getTime() + 1 * 30 * 700); 
   displayCountdown: any;
   notificationActive: boolean = false;
 
@@ -37,6 +37,11 @@ export class HomePage implements OnInit{
     setInterval(() => { 
       this.updateCurrentTime() 
     }, 1000);
+  }
+
+  updateScheduledNotifTime(durationInMinutes: number) {
+    this.scheduledNotifTime = new Date(new Date().getTime() + durationInMinutes * 30 * 1000);
+    console.log(`Updated scheduledNotifTime: ${this.scheduledNotifTime}`);
   }
 
   startCountdown() {
@@ -69,10 +74,6 @@ export class HomePage implements OnInit{
     this.currentTime = formatDateInTimezone(now, defaultTimezone);
   }
 
-  async checkPermissions() {
-    const permissions = await this.notificationServ.checkNotificationPermissions();
-  }
-
   async requestPermissions() {
     const permissions = await this.notificationServ.requestNotificationPermissions();
   }
@@ -84,9 +85,9 @@ export class HomePage implements OnInit{
     if (permissions.display !== 'granted') {
       const toast = await this.toastController.create({
         message: 'Notification permissions not granted. Requesting permissions...',
-        duration: 3000, // Toast duration in milliseconds
-        position: 'bottom', // Position of the toast
-        color: 'warning', // Optional: Set a color for the toast
+        duration: 3000,
+        position: 'bottom',
+        color: 'warning',
       });
       await toast.present();
       await this.requestPermissions();
@@ -104,6 +105,9 @@ export class HomePage implements OnInit{
     } else {
       this.notificationActive = true;
   
+      // Update scheduledNotifTime for the Pomodoro
+      this.updateScheduledNotifTime(1);
+  
       const pomodoroNotification: any = {
         title: 'Reminder',
         body: 'Time for a Break! (5 Minutes)',
@@ -115,7 +119,7 @@ export class HomePage implements OnInit{
         title: 'Break Finished',
         body: 'Start another Pomodoro or Finish up!',
         id: 2,
-        schedule: { at: new Date(this.scheduledNotifTime.getTime() + 5 * 60 * 1000) }, // 5 minutes after the first notification
+        schedule: { at: new Date(this.scheduledNotifTime.getTime() + 1 * 30 * 1000) }, // 5 minutes after the Pomodoro
       };
   
       await this.notificationServ.scheduleNotificationWithFollowUp(pomodoroNotification, breakNotification);
@@ -125,9 +129,14 @@ export class HomePage implements OnInit{
   
       // Update the scheduledNotifTime for the break and restart the countdown after the Pomodoro ends
       setTimeout(() => {
-        this.scheduledNotifTime = new Date(new Date().getTime() + 5 * 60 * 1000); // 5-minute break
         this.startCountdown();
-      }, 25 * 60 * 1000); // Wait for 25 minutes (Pomodoro duration)
+
+        // Set notificationActive to false after the break ends
+        setTimeout(() => {
+          this.notificationActive = false;
+          console.log('Break finished. notificationActive set to false.');
+        }, 1 * 30 * 1000); // Wait for 5 minutes (break duration) | Should be 5 * 60 * 1000 for 25 Minutes
+      }, 1 * 30 * 1000); // Wait for 25 minutes (Pomodoro duration) | Should be 25 * 60 * 1000 for 25 Minutes
     }
   }
 
@@ -150,8 +159,17 @@ export class HomePage implements OnInit{
   }
 
   // Ion Modal Stuff
-  cancel() {
-    this.modal.dismiss(null, 'cancel');
+  async cancel() {
+    if (this.notificationActive == true) {
+      const toast = await this.toastController.create({
+        message: 'Please Finish the Pomodoro :)',
+        duration: 3000,
+        position: 'bottom',
+        color: 'warning',
+      });
+      await toast.present();
+    } else {
+      this.modal.dismiss(null, 'cancel');
+    }
   }
-  
 }
