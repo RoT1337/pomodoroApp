@@ -5,6 +5,7 @@ import { NotificationService } from '../services/notification.service';
 import { getDefaultTimezone, formatDateInTimezone } from 'src/utils/timezone-util';
 import { IonModal } from '@ionic/angular';
 import { ToastController } from '@ionic/angular';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-home',
@@ -14,16 +15,20 @@ import { ToastController } from '@ionic/angular';
 })
 export class HomePage implements OnInit{
   @ViewChild(IonModal) modal!: IonModal;
+  @ViewChild('breakModal', { static: true }) breakModal!: IonModal;
   currentTime: string = '';
-  scheduledNotifTime: any = new Date(new Date().getTime() + 1 * 30 * 700); 
+  scheduledNotifTime: any;
   displayCountdown: any;
   notificationActive: boolean = false;
+  breakCountdown: any;
+  isBreak: boolean = false;
 
   constructor(
     private notificationServ: NotificationService, 
     private platform: Platform,
     private routerOutlet: IonRouterOutlet,
-    private toastController: ToastController
+    private toastController: ToastController,
+    private cdr: ChangeDetectorRef
   ) {
     this.platform.backButton.subscribeWithPriority(-1, () => {
       if (!this.routerOutlet.canGoBack()) {
@@ -61,6 +66,7 @@ export class HomePage implements OnInit{
       const seconds = Math.floor((timeDifference / 1000) % 60);
 
       this.displayCountdown = `${this.padNumber(hours)}:${this.padNumber(minutes)}:${this.padNumber(seconds)}`;
+      this.cdr.detectChanges();
     }, 1000);
   }
 
@@ -104,6 +110,7 @@ export class HomePage implements OnInit{
       await toast.present();
     } else {
       this.notificationActive = true;
+      this.isBreak = false;
   
       // Update scheduledNotifTime for the Pomodoro
       this.updateScheduledNotifTime(1);
@@ -128,8 +135,13 @@ export class HomePage implements OnInit{
       this.startCountdown();
   
       // Update the scheduledNotifTime for the break and restart the countdown after the Pomodoro ends
-      setTimeout(() => {
-        this.startCountdown();
+      setTimeout(async () => {
+        this.isBreak = true;
+        this.updateScheduledNotifTime(1);
+        this.startBreakCountdown();
+
+        await this.closePomodoroModal();
+        await this.openBreakModal();
 
         // Set notificationActive to false after the break ends
         setTimeout(() => {
@@ -138,6 +150,46 @@ export class HomePage implements OnInit{
         }, 1 * 30 * 1000); // Wait for 5 minutes (break duration) | Should be 5 * 60 * 1000 for 25 Minutes
       }, 1 * 30 * 1000); // Wait for 25 minutes (Pomodoro duration) | Should be 25 * 60 * 1000 for 25 Minutes
     }
+  }
+
+  async openBreakModal() {
+    await this.breakModal.present();
+  }
+
+  async closePomodoroModal() {
+    await this.modal.dismiss();
+  }
+
+  async closeBreakModal() {
+    if (this.notificationActive) {
+      const toast = await this.toastController.create({
+        message: 'Please Finish the Pomodoro :)',
+        duration: 3000,
+        position: 'bottom',
+        color: 'warning',
+      });
+      await toast.present();
+    } else {
+      await this.breakModal.dismiss();
+    }
+  }
+
+  startBreakCountdown() {
+    const countdownInterval = setInterval(() => {
+      const now = new Date();
+      const timeDifference = this.scheduledNotifTime.getTime() - now.getTime();
+
+      if (timeDifference <= 0) {
+        clearInterval(countdownInterval);
+        this.breakCountdown = '00:00';
+        return;
+      }
+
+      const minutes = Math.floor((timeDifference / (1000 * 60)) % 60);
+      const seconds = Math.floor((timeDifference / 1000) % 60);
+
+      this.breakCountdown = `${this.padNumber(minutes)}:${this.padNumber(seconds)}`;
+    }, 1000);
   }
 
   async viewPendingPomodoroLength(): Promise<Number> {
@@ -149,27 +201,5 @@ export class HomePage implements OnInit{
   async viewPendingPomodoro() {
     const pending = await this.notificationServ.getPendingNotifications();
     alert(JSON.stringify(pending));
-  }
-
-  // Debug
-  async clearNotifications() {
-    await this.notificationServ.clearAllNotifications();
-    this.notificationActive = false
-    alert('All notifications cleared');
-  }
-
-  // Ion Modal Stuff
-  async cancel() {
-    if (this.notificationActive == true) {
-      const toast = await this.toastController.create({
-        message: 'Please Finish the Pomodoro :)',
-        duration: 3000,
-        position: 'bottom',
-        color: 'warning',
-      });
-      await toast.present();
-    } else {
-      this.modal.dismiss(null, 'cancel');
-    }
   }
 }
