@@ -6,6 +6,7 @@ import { getDefaultTimezone, formatDateInTimezone } from 'src/utils/timezone-uti
 import { IonModal } from '@ionic/angular';
 import { ToastController } from '@ionic/angular';
 import { ChangeDetectorRef } from '@angular/core';
+import { TimerService } from '../services/timer.service';
 
 @Component({
   selector: 'app-home',
@@ -23,7 +24,12 @@ export class HomePage implements OnInit{
   breakCountdown: any;
   isBreak: boolean = false;
 
+  durationSeconds: number = 60; // Default 60
+  durationPomodoroMinutes: number = 25; // Default 25
+  durationBreakMinutes: number = 5; // Default 5
+
   constructor(
+    private timerService: TimerService,
     private notificationServ: NotificationService, 
     private platform: Platform,
     private routerOutlet: IonRouterOutlet,
@@ -39,13 +45,16 @@ export class HomePage implements OnInit{
   }
 
   ngOnInit(): void {
+    this.durationPomodoroMinutes = this.timerService.getPomodoroDuration();
+    this.durationBreakMinutes = this.timerService.getBreakDuration();
+
     setInterval(() => { 
       this.updateCurrentTime() 
     }, 1000);
   }
 
   updateScheduledNotifTime(durationInMinutes: number) {
-    this.scheduledNotifTime = new Date(new Date().getTime() + durationInMinutes * 30 * 1000);
+    this.scheduledNotifTime = new Date(new Date().getTime() + durationInMinutes * this.durationSeconds * 1000);
     console.log(`Updated scheduledNotifTime: ${this.scheduledNotifTime}`);
   }
 
@@ -113,7 +122,7 @@ export class HomePage implements OnInit{
       this.isBreak = false;
   
       // Update scheduledNotifTime for the Pomodoro
-      this.updateScheduledNotifTime(1);
+      this.updateScheduledNotifTime(this.durationPomodoroMinutes);
   
       const pomodoroNotification: any = {
         title: 'Reminder',
@@ -126,7 +135,7 @@ export class HomePage implements OnInit{
         title: 'Break Finished',
         body: 'Start another Pomodoro or Finish up!',
         id: 2,
-        schedule: { at: new Date(this.scheduledNotifTime.getTime() + 1 * 30 * 1000) }, // 5 minutes after the Pomodoro
+        schedule: { at: new Date(this.scheduledNotifTime.getTime() + this.durationBreakMinutes * this.durationSeconds * 1000) }, // 5 minutes after the Pomodoro
       };
   
       await this.notificationServ.scheduleNotificationWithFollowUp(pomodoroNotification, breakNotification);
@@ -137,7 +146,7 @@ export class HomePage implements OnInit{
       // Update the scheduledNotifTime for the break and restart the countdown after the Pomodoro ends
       setTimeout(async () => {
         this.isBreak = true;
-        this.updateScheduledNotifTime(1);
+        this.updateScheduledNotifTime(this.durationBreakMinutes);
         this.startBreakCountdown();
 
         await this.closePomodoroModal();
@@ -147,8 +156,8 @@ export class HomePage implements OnInit{
         setTimeout(() => {
           this.notificationActive = false;
           console.log('Break finished. notificationActive set to false.');
-        }, 1 * 30 * 1000); // Wait for 5 minutes (break duration) | Should be 5 * 60 * 1000 for 25 Minutes
-      }, 1 * 30 * 1000); // Wait for 25 minutes (Pomodoro duration) | Should be 25 * 60 * 1000 for 25 Minutes
+        }, this.durationBreakMinutes * this.durationSeconds * 1000); // Wait for 5 minutes (break duration) | Should be 5 * 60 * 1000 for 25 Minutes
+      }, this.durationPomodoroMinutes * this.durationSeconds * 1000); // Wait for 25 minutes (Pomodoro duration) | Should be 25 * 60 * 1000 for 25 Minutes
     }
   }
 
@@ -200,6 +209,9 @@ export class HomePage implements OnInit{
   // Debug
   async viewPendingPomodoro() {
     const pending = await this.notificationServ.getPendingNotifications();
-    alert(JSON.stringify(pending));
+    const pomodoroTimer = this.durationPomodoroMinutes;
+    const breakTimer = this.durationBreakMinutes;
+
+    alert(`${JSON.stringify(pending)} || Pomodoro Timer: ${pomodoroTimer} || Break Timer: ${breakTimer}`);
   }
 }

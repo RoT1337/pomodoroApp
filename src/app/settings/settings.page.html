@@ -1,0 +1,22 @@
+<ion-header [translucent]="true">
+  <ion-toolbar style="padding-top: 25px;">
+    <ion-buttons slot="start">
+      <ion-button [routerLink]="'/home'">Return</ion-button>
+    </ion-buttons>
+    <ion-title>Settings</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <ion-item>
+    <ion-label position="stacked">Pomodoro Duration (minutes)</ion-label>
+    <ion-input type="number" [(ngModel)]="pomodoroDuration" placeholder="Enter Pomodoro duration"></ion-input>
+  </ion-item>
+
+  <ion-item>
+    <ion-label position="stacked">Break Duration (minutes)</ion-label>
+    <ion-input type="number" [(ngModel)]="breakDuration" placeholder="Enter Break duration"></ion-input>
+  </ion-item>
+
+  <ion-button expand="block" (click)="saveSettings()">Save</ion-button>
+</ion-content>

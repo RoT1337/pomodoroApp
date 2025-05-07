@@ -10,6 +10,7 @@
   <h2 class="ion-text-center">Current Local Time: {{ currentTime }}</h2>
   <ion-button expand="block" (click)="viewPendingPomodoro()">Check Pending Pomodoro/Notifs</ion-button>
   <ion-button expand="block" id="open-pomodoro-modal" (click)="createPomodoro()" color="warning">Press to Start Pomodoro</ion-button>
+  <ion-button expand="block" [routerLink]="'/settings'">Set Timers</ion-button>
 
   <!-- Pomodoro Timer Modal -->
   <ion-modal trigger="open-pomodoro-modal" (ionModalDidPresent)="startCountdown()">
